@@ -66,10 +66,14 @@ private:
     bool operator()(const ListState &X, const ListState &Y) const;
   };
 
+  static constexpr size_t BucketCount = 1'000'000;
+
   // __gnu_pbds::priority_queue<ListState, Comparator> OpenList;
   // using Iterator = typename decltype(OpenList)::point_iterator;
   // std::unordered_map<State, Iterator> Pointer;
-  std::unordered_map<State, int> Cache;
+  std::unordered_map<State, std::tuple<int, State, Move>> Cache;
+
+  void backtrace(State S, int Dist, std::ostream &OS);
 
 public:
   AStarSolver(int Rows, int Cols, const std::vector<Cell> &Grid);

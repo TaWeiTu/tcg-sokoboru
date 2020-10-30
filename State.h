@@ -5,6 +5,7 @@
 #include <array>
 #include <cassert>
 #include <functional>
+#include <numeric>
 #include <ostream>
 #include <vector>
 
@@ -30,6 +31,9 @@ struct State {
   bool operator==(const State &RHS) const {
     return Player == RHS.Player && Masks == RHS.Masks;
   }
+  bool operator!=(const State &RHS) const {
+    return Player != RHS.Player || Masks != RHS.Masks;
+  }
 
   bool terminate() const { return Masks[BALL] == 0; }
 
@@ -54,22 +58,34 @@ struct State {
     insert<X>(New);
   }
 
-  virtual int getHeuristic(int Rows, int Cols) const {
+  virtual int getHeuristic(uint8_t Rows, uint8_t Cols) const {
     uint8_t Dist[2] = {0, 0};
     uint8_t CurR = Player / Cols;
     uint8_t CurC = Player % Cols;
+    uint8_t NumBalls = __builtin_popcountll(Masks[BALL]);
+    std::vector<uint8_t> Distances;
+    Distances.reserve(2 * NumBalls);
     for (uint8_t R = 0; R < Rows; ++R) {
       for (uint8_t C = 0; C < Cols; ++C) {
         uint8_t P = R * Cols + C;
         uint8_t D = std::abs(CurR - R) + std::abs(CurC - C);
-        if (has<BALL>(P))
-          Dist[0] = std::max(Dist[0], D);
-        if (has<EMPTY_BOX>(P))
-          Dist[1] = std::max(Dist[1], D);
+        if (has<BALL>(P) || has<EMPTY_BOX>(P))
+          Distances.push_back(D);
       }
     }
-    return std::min(Dist[0], Dist[1]) * __builtin_popcountll(Masks[BALL]);
+    std::nth_element(Distances.begin(), Distances.begin() + NumBalls,
+                     Distances.end());
+    // return std::min(Dist[0], Dist[1]) * __builtin_popcountll(Masks[BALL]);
+    return std::accumulate(Distances.begin(), Distances.end(), 0);
   }
+  // virtual int getHeuristic(uint8_t Rows, uint8_t Cols) const {
+  //   uint8_t NumBalls = __builtin_popcountll(Masks[BALL]);
+  //   for (uint8_t R = 0; R < Rows; ++R) {
+  //     for (uint8_t C = 0; C < Cols; ++C) {
+
+  //     }
+  //   }
+  // }
 
   bool isEmpty(uint8_t Pos) const {
     return ((Masks[BALL] | Masks[EMPTY_BOX] | Masks[WALL] | Masks[FULL_BOX]) >>
