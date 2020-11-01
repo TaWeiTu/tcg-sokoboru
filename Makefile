@@ -1,6 +1,6 @@
 CXXFLAGS = -O3 -std=c++17 -Wall -Wextra -DNDEBUG
 LDFLAGS = -flto=thin
-OBJS = Main.o BFS.o AStar.o
+OBJS = Main.o AStar.o
 
 all: solver
 

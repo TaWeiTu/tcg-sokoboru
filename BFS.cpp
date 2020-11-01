@@ -22,7 +22,7 @@ void BFSSolver::solve(std::ostream &OS) {
         uint8_t Next = Dest[Pos][Dir];
         if (Next == InvalidCell)
           continue;
-        auto [NextState, Cost] = State.getNextState(Dir, Dest);
+        auto [NextState, Cost] = State.getNextState(Dir, Dest, Grid);
         if (Cost < 0)
           continue;
 

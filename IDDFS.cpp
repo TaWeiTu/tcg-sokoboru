@@ -15,7 +15,7 @@ bool IDDFSSolver::IDDFS(const State &S, const State &Parent, int Depth, int Dept
     uint8_t Next = Dest[Pos][Dir];
     if (Next == InvalidCell)
       continue;
-    auto [NextState, Cost] = S.getNextState(Dir, Dest);
+    auto [NextState, Cost] = S.getNextState(Dir, Dest, Grid);
     if (NextState == Parent)
       continue;
     if (Cost < 0)

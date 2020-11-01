@@ -31,30 +31,37 @@ void AStarSolver::solve(std::ostream &OS) {
   std::priority_queue<ListState, std::vector<ListState>, Comparator> OpenList;
   OpenList.emplace(0, 0, Start);
   Cache[Start] = std::make_tuple(0, Start, Move(0));
+  uint64_t WallMask = 0;
+  for (unsigned P = 0, E = Grid.size(); P != E; ++P) {
+    if (Grid[P] == WALL)
+      WallMask |= (1ULL << P);
+  }
   while (!OpenList.empty()) {
     auto [Heuristic, Dist, S] = OpenList.top();
     OpenList.pop();
     if (S.terminate()) {
       backtrace(S, Dist, OS);
-      // OS << "Found Dist = " << Dist << "\n";
       return;
     }
 
     if (std::get<0>(Cache[S]) < Heuristic)
       continue;
 
-    uint8_t Pos = S.Player;
+    uint8_t Pos = S.getPlayer();
     for (uint8_t Dir = 0; Dir < 4; ++Dir) {
       uint8_t Next = Dest[Pos][Dir];
       if (Next == InvalidCell)
         continue;
 
-      auto [NextState, Cost] = S.getNextState(Dir, Dest);
+      auto [NextState, Cost] = S.getNextState(Dir, Dest, WallMask);
       if (Cost < 0)
         continue;
 
       int NextDist = Dist + Cost;
-      int NextHeuristic = NextDist + NextState.getHeuristic(Rows, Cols);
+      int H = NextState.getHeuristic(Rows, Cols);
+      if (H < 0)
+        continue;
+      int NextHeuristic = NextDist + H;
       auto Iter = Cache.find(NextState);
       if (Iter == Cache.end() || std::get<0>(Iter->second) > NextHeuristic) {
         Cache[NextState] = std::make_tuple(NextHeuristic, S, Move(Dir));
