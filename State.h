@@ -9,28 +9,31 @@
 #include <iostream>
 #include <numeric>
 #include <ostream>
+#include <type_traits>
 #include <vector>
 
 enum Cell : uint8_t { BALL, EMPTY_BOX, WALL, FULL_BOX, EMPTY, PLAYER };
 constexpr uint8_t InvalidCell = static_cast<uint8_t>(-1);
 
-struct State {
-  std::array<uint64_t, 2> Masks;
-  static constexpr uint64_t StateMask = (1ULL << 50) - 1;
-  static constexpr uint64_t PlayerMask = 255ULL << 50;
+template <uint8_t Rows, uint8_t Cols> struct State {
+  using MaskT = std::conditional_t<Rows * Cols <= 24, uint32_t, uint64_t>;
+  std::array<MaskT, 2> Masks;
+  static constexpr uint8_t StateSize = Rows * Cols;
+  static constexpr MaskT StateMask = (MaskT(1) << StateSize) - 1;
+  static constexpr MaskT PlayerMask = 255ULL << StateSize;
 
   State() = default;
 
-  State(const std::vector<Cell> &Grid) : Masks{} {
-    for (uint8_t I = 0, E = Grid.size(); I != E; ++I) {
+  State(const std::array<Cell, StateSize> &Grid) : Masks{} {
+    for (uint8_t I = 0; I != StateSize; ++I) {
       if (Grid[I] == PLAYER) {
         setPlayer(I);
       } else if (Grid[I] != EMPTY && Grid[I] != WALL) {
         if (Grid[I] != FULL_BOX) {
-          Masks[Grid[I]] |= (1ULL << I);
+          Masks[Grid[I]] |= (MaskT(1) << I);
         } else {
-          Masks[BALL] |= (1ULL << I);
-          Masks[EMPTY_BOX] |= (1ULL << I);
+          Masks[BALL] |= (MaskT(1) << I);
+          Masks[EMPTY_BOX] |= (MaskT(1) << I);
         }
       }
     }
@@ -44,53 +47,64 @@ struct State {
   }
 
   template <uint8_t X> bool has(uint8_t Pos) const {
-    return (Masks[X] & ~Masks[X ^ 1]) >> Pos & 1;
+    if constexpr (X == FULL_BOX)
+      return (Masks[BALL] & Masks[EMPTY_BOX]) >> Pos & 1;
+    else
+      return (Masks[X] & ~Masks[X ^ 1]) >> Pos & 1;
   }
 
   uint8_t getPlayer() const {
-    return static_cast<uint8_t>(Masks[0] >> 50 & 255);
+    return static_cast<uint8_t>(Masks[0] >> StateSize & 255);
   }
 
   void setPlayer(uint8_t Pos) {
     Masks[0] &= StateMask;
-    Masks[0] |= static_cast<uint64_t>(Pos) << 50;
+    Masks[0] |= static_cast<MaskT>(Pos) << StateSize;
   }
 
   template <uint8_t X> void remove(uint8_t Pos) {
     assert(has<X>(Pos));
-    Masks[X] &= ~(1ULL << Pos);
+    Masks[X] &= ~(MaskT(1) << Pos);
   }
 
   template <uint8_t X> void insert(uint8_t Pos) {
     assert(!has<X>(Pos));
-    Masks[X] |= (1ULL << Pos);
+    Masks[X] |= (MaskT(1) << Pos);
   }
 
   template <uint8_t X> void move(uint8_t Old, uint8_t New) {
     remove<X>(Old);
     insert<X>(New);
   }
-  virtual int getHeuristic([[maybe_unused]] int Rows,
-                           [[maybe_unused]] int Cols) const {
+
+  static int CountTrailingZero(MaskT V) {
+    if constexpr (std::is_same_v<uint32_t, MaskT>)
+      return __builtin_ctz(V);
+    else
+      return __builtin_ctzll(V);
+  }
+
+  virtual int getHeuristic() const {
     int CurR = getPlayer() / Cols;
     int CurC = getPlayer() % Cols;
     int Dist = 0;
-    for (uint64_t V = ((Masks[0] ^ Masks[1]) & StateMask); V > 0;) {
-      int Bit = __builtin_ctzll(V & -V);
+    for (MaskT V = ((Masks[0] ^ Masks[1]) & StateMask); V > 0;) {
+      int Bit = CountTrailingZero(V & -V);
       int R = Bit / Cols, C = Bit % Cols;
       Dist += std::abs(CurR - R) + std::abs(CurC - C);
-      V ^= (1ULL << Bit);
+      V ^= (MaskT(1) << Bit);
     }
     return Dist;
   }
 
-  bool isEmpty(uint8_t Pos, uint64_t WallMask) const {
+  bool isEmpty(uint8_t Pos, MaskT WallMask) const {
     return ((WallMask | Masks[BALL] | Masks[EMPTY_BOX]) >> Pos & 1) == 0;
   }
 
   std::pair<State, int>
-  getNextState(uint8_t Dir, const std::vector<std::array<uint8_t, 4>> &Dest,
-               uint64_t WallMask) const {
+  getNextState(uint8_t Dir,
+               const std::array<std::array<uint8_t, 4>, StateSize> &Dest,
+               MaskT WallMask) const {
     State NextState = *this;
     uint8_t Dst = Dest[getPlayer()][Dir];
     NextState.setPlayer(Dst);
@@ -132,18 +146,14 @@ struct State {
   }
 };
 
-template <> inline bool State::has<FULL_BOX>(uint8_t Pos) const {
-  return (Masks[BALL] & Masks[EMPTY_BOX]) >> Pos & 1;
-}
-
 namespace std {
 
-template <> struct hash<State> {
+template <uint8_t Rows, uint8_t Cols> struct hash<State<Rows, Cols>> {
   template <typename T> uint64_t getHash(const T &V) const {
     return std::hash<T>()(V);
   }
 
-  uint64_t operator()(const State &S) const {
+  uint64_t operator()(const State<Rows, Cols> &S) const {
     uint64_t Seed = 7122;
     Seed ^= getHash(S.Masks[0]) + 0x9e3779b9 + (Seed << 6) + (Seed >> 2);
     Seed ^= getHash(S.Masks[1]) + 0x9e3779b9 + (Seed << 6) + (Seed >> 2);
@@ -153,7 +163,8 @@ template <> struct hash<State> {
 
 } // namespace std
 
-inline void debug(std::ostream &OS, const State &S, int Rows, int Cols,
+template <uint8_t Rows, uint8_t Cols>
+inline void debug(std::ostream &OS, const State<Rows, Cols> &S,
                   const std::vector<Cell> &Grid) {
   for (int Pos = 0; Pos < Rows * Cols; ++Pos) {
     if (Pos == S.getPlayer())

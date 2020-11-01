@@ -3,19 +3,17 @@
 
 #include "State.h"
 #include "Utils.h"
-#include <bits/extc++.h>
 #include <ostream>
 #include <unordered_set>
 
-class Solver {
+template <uint8_t Rows, uint8_t Cols> class Solver {
 protected:
-  int Rows, Cols;
-  const std::vector<Cell> &Grid;
-  std::vector<std::array<uint8_t, 4>> Dest;
+  std::array<std::array<uint8_t, 4>, Rows * Cols> Dest;
+  typename State<Rows, Cols>::MaskT WallMask;
+  State<Rows, Cols> StartState;
 
 public:
-  Solver(int Rows, int Cols, const std::vector<Cell> &Grid)
-      : Rows(Rows), Cols(Cols), Grid(Grid), Dest(Rows * Cols) {
+  Solver(const std::vector<Cell> &Grid) : Dest{}, WallMask(0) {
     for (int R = 0; R < Rows; ++R) {
       for (int C = 0; C < Cols; ++C) {
         auto &Dst = Dest[R * Cols + C];
@@ -30,11 +28,19 @@ public:
           Dst[RIGHT] = R * Cols + (C + 1);
       }
     }
+    for (unsigned P = 0, E = Rows * Cols; P != E; ++P) {
+      if (Grid[P] == WALL)
+        WallMask |= (1ULL << P);
+    }
+    std::array<Cell, Rows * Cols> StaticGrid;
+    std::copy(Grid.begin(), Grid.end(), StaticGrid.begin());
+    StartState = State<Rows, Cols>(StaticGrid);
   }
 
   virtual void solve(std::ostream &OS) = 0;
 };
 
+/*
 class BFSSolver : public Solver {
   std::array<std::vector<State>, 3> Que;
   std::unordered_map<State, State> PrevState;
@@ -57,27 +63,24 @@ public:
   void solve(std::ostream &OS) override;
 };
 
-class AStarSolver : public Solver {
+class IDAStarSolver : public Solver {
 public:
-  using ListState = std::tuple<int, int, State>;
+  using ListState = std::tuple<int, int, uint8_t, State>;
 
 private:
   struct Comparator {
     bool operator()(const ListState &X, const ListState &Y) const;
   };
 
-  static constexpr size_t BucketCount = 1'000'000;
+  int DFS(State CurState, State PrevState, int Dist, int Cost, int Threshold);
+  std::unordered_set<State> InPath;
+  std::vector<State> Path;
 
-  // __gnu_pbds::priority_queue<ListState, Comparator> OpenList;
-  // using Iterator = typename decltype(OpenList)::point_iterator;
-  // std::unordered_map<State, Iterator> Pointer;
-  std::unordered_map<State, std::tuple<int, State, Move>> Cache;
-
-  void backtrace(State S, int Dist, std::ostream &OS);
+  static constexpr int PathFound = -1;
 
 public:
-  AStarSolver(int Rows, int Cols, const std::vector<Cell> &Grid);
+  IDAStarSolver(int Rows, int Cols, const std::vector<Cell> &Grid);
   void solve(std::ostream &OS) override;
-};
+}; */
 
 #endif // SOLVER_H
