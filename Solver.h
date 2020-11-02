@@ -32,30 +32,30 @@ public:
     }
   }
 
-  virtual void solve(std::ostream &OS) = 0;
+  virtual std::pair<int, std::string> solve() = 0;
 };
 
-class BFSSolver : public Solver {
-  std::array<std::vector<State>, 3> Que;
-  std::unordered_map<State, State> PrevState;
-  std::unordered_map<State, uint8_t> MoveDirs;
-
-  void backTrack(std::ostream &OS, State S, int Dist, uint8_t Dir);
-
-public:
-  BFSSolver(int Rows, int Cols, const std::vector<Cell> &Grid);
-  void solve(std::ostream &OS) override;
-};
-
-class IDDFSSolver : public Solver {
-  std::unordered_map<State, int> VisState;
-
-  bool IDDFS(const State &S, const State &Parent, int Depth, int DepthLimit);
-
-public:
-  IDDFSSolver(int Rows, int Cols, const std::vector<Cell> &Grid);
-  void solve(std::ostream &OS) override;
-};
+// class BFSSolver : public Solver {
+//   std::array<std::vector<State>, 3> Que;
+//   std::unordered_map<State, State> PrevState;
+//   std::unordered_map<State, uint8_t> MoveDirs;
+//
+//   void backTrack(std::ostream &OS, State S, int Dist, uint8_t Dir);
+//
+// public:
+//   BFSSolver(int Rows, int Cols, const std::vector<Cell> &Grid);
+//   void solve(std::ostream &OS) override;
+// };
+//
+// class IDDFSSolver : public Solver {
+//   std::unordered_map<State, int> VisState;
+//
+//   bool IDDFS(const State &S, const State &Parent, int Depth, int DepthLimit);
+//
+// public:
+//   IDDFSSolver(int Rows, int Cols, const std::vector<Cell> &Grid);
+//   void solve(std::ostream &OS) override;
+// };
 
 class AStarSolver : public Solver {
 public:
@@ -67,17 +67,13 @@ private:
   };
 
   static constexpr size_t BucketCount = 1'000'000;
-
-  // __gnu_pbds::priority_queue<ListState, Comparator> OpenList;
-  // using Iterator = typename decltype(OpenList)::point_iterator;
-  // std::unordered_map<State, Iterator> Pointer;
   std::unordered_map<State, std::tuple<int, State, Move>> Cache;
 
-  void backtrace(State S, int Dist, std::ostream &OS);
+  std::string backtrace(State S);
 
 public:
   AStarSolver(int Rows, int Cols, const std::vector<Cell> &Grid);
-  void solve(std::ostream &OS) override;
+  std::pair<int, std::string> solve() override;
 };
 
 #endif // SOLVER_H

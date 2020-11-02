@@ -1,5 +1,5 @@
 CXXFLAGS = -O3 -std=c++17 -Wall -Wextra -DNDEBUG
-LDFLAGS = -flto=thin
+LDFLAGS = -flto=thin -lpthread
 OBJS = Main.o AStar.o
 
 all: solver

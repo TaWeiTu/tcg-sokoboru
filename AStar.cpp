@@ -11,8 +11,7 @@ bool AStarSolver::Comparator::operator()(const ListState &X,
                                           : std::get<0>(X) > std::get<0>(Y);
 }
 
-void AStarSolver::backtrace(State S, int Dist, std::ostream &OS) {
-  OS << Dist << "\n";
+std::string AStarSolver::backtrace(State S) {
   std::string Path = "";
   while (true) {
     auto Iter = Cache.find(S);
@@ -23,10 +22,10 @@ void AStarSolver::backtrace(State S, int Dist, std::ostream &OS) {
     S = std::get<1>(Iter->second);
   }
   std::reverse(Path.begin(), Path.end());
-  OS << Path << "\n";
+  return Path;
 }
 
-void AStarSolver::solve(std::ostream &OS) {
+std::pair<int, std::string> AStarSolver::solve() {
   auto Start = State(Grid);
   std::priority_queue<ListState, std::vector<ListState>, Comparator> OpenList;
   OpenList.emplace(0, 0, Start);
@@ -39,10 +38,8 @@ void AStarSolver::solve(std::ostream &OS) {
   while (!OpenList.empty()) {
     auto [Heuristic, Dist, S] = OpenList.top();
     OpenList.pop();
-    if (S.terminate()) {
-      backtrace(S, Dist, OS);
-      return;
-    }
+    if (S.terminate())
+      return std::make_pair(Dist, backtrace(S));
 
     if (std::get<0>(Cache[S]) < Heuristic)
       continue;
@@ -69,4 +66,5 @@ void AStarSolver::solve(std::ostream &OS) {
       }
     }
   }
+  __builtin_unreachable();
 }
