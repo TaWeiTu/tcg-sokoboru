@@ -1,47 +1,17 @@
-#ifndef ASTAR_H
-#define ASTAR_H
-
 #include "Solver.h"
 #include <queue>
+#include <tuple>
 
-template <uint8_t Rows, uint8_t Cols>
-class AStarSolver : public Solver<Rows, Cols> {
-public:
-  using StateT = State<Rows, Cols>;
-  using ListState = std::tuple<int, int, StateT>;
+AStarSolver::AStarSolver(int Rows, int Cols, const std::vector<Cell> &Grid)
+    : Solver(Rows, Cols, Grid), Cache(BucketCount) {}
 
-private:
-  struct Comparator {
-    bool operator()(const ListState &X, const ListState &Y) const;
-  };
-
-  static constexpr size_t BucketCount = 1'000'000;
-  std::unordered_map<StateT, std::tuple<int, StateT, Move>> Cache;
-
-  using Solver<Rows, Cols>::Dest;
-  using Solver<Rows, Cols>::WallMask;
-  using Solver<Rows, Cols>::StartState;
-
-  void backtrace(StateT S, int Dist, std::ostream &OS);
-
-public:
-  AStarSolver(const std::vector<Cell> &Grid);
-  void solve(std::ostream &OS) override;
-};
-
-template <uint8_t Rows, uint8_t Cols>
-AStarSolver<Rows, Cols>::AStarSolver(const std::vector<Cell> &Grid)
-    : Solver<Rows, Cols>(Grid), Cache(BucketCount) {}
-
-template <uint8_t Rows, uint8_t Cols>
-bool AStarSolver<Rows, Cols>::Comparator::operator()(const ListState &X,
-                                                     const ListState &Y) const {
+bool AStarSolver::Comparator::operator()(const ListState &X,
+                                         const ListState &Y) const {
   return std::get<0>(X) == std::get<0>(Y) ? std::get<1>(X) > std::get<1>(Y)
                                           : std::get<0>(X) > std::get<0>(Y);
 }
 
-template <uint8_t Rows, uint8_t Cols>
-void AStarSolver<Rows, Cols>::backtrace(StateT S, int Dist, std::ostream &OS) {
+void AStarSolver::backtrace(State S, int Dist, std::ostream &OS) {
   OS << Dist << "\n";
   std::string Path = "";
   while (true) {
@@ -56,11 +26,16 @@ void AStarSolver<Rows, Cols>::backtrace(StateT S, int Dist, std::ostream &OS) {
   OS << Path << "\n";
 }
 
-template <uint8_t Rows, uint8_t Cols>
-void AStarSolver<Rows, Cols>::solve(std::ostream &OS) {
+void AStarSolver::solve(std::ostream &OS) {
+  auto Start = State(Grid);
   std::priority_queue<ListState, std::vector<ListState>, Comparator> OpenList;
-  OpenList.emplace(0, 0, StartState);
-  Cache[StartState] = std::make_tuple(0, StartState, Move(0));
+  OpenList.emplace(0, 0, Start);
+  Cache[Start] = std::make_tuple(0, Start, Move(0));
+  uint64_t WallMask = 0;
+  for (unsigned P = 0, E = Grid.size(); P != E; ++P) {
+    if (Grid[P] == WALL)
+      WallMask |= (1ULL << P);
+  }
   while (!OpenList.empty()) {
     auto [Heuristic, Dist, S] = OpenList.top();
     OpenList.pop();
@@ -83,7 +58,7 @@ void AStarSolver<Rows, Cols>::solve(std::ostream &OS) {
         continue;
 
       int NextDist = Dist + Cost;
-      int H = NextState.getHeuristic();
+      int H = NextState.getHeuristic(Rows, Cols);
       if (H < 0)
         continue;
       int NextHeuristic = NextDist + H;
@@ -95,5 +70,3 @@ void AStarSolver<Rows, Cols>::solve(std::ostream &OS) {
     }
   }
 }
-
-#endif // ASTAR_H
