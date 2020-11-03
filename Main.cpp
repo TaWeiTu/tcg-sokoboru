@@ -21,24 +21,36 @@ int main() {
       break;
 
     auto Grid = readSokoboruGrid(Rows, Cols);
-    I.emplace_back(Rows, Cols, std::move(Grid));
+    std::cout << AStarSolver(Rows, Cols, Grid).solve().first << "\n";
+    // I.emplace_back(Rows, Cols, std::move(Grid));
   }
-  int K = I.size();
-  std::vector<std::pair<int, std::string>> Answer(K);
+  // int K = I.size();
+  // std::vector<std::pair<int, std::string>> Answer(K);
+  // size_t Iter = 0;
+  // std::mutex Mutex;
 
-  auto Solve = [&I, &Answer](int Beg, int End) {
-    while (Beg < End) {
-      auto Result = AStarSolver(I[Beg].Rows, I[Beg].Cols, I[Beg].Grid).solve();
-      Answer[Beg] = Result;
-      Beg++;
-    }
-  };
+  // auto Solve = [&I, &Answer, &Iter, &Mutex](size_t ID) {
+  //   auto getIter = [&]() -> size_t {
+  //     std::lock_guard<std::mutex> Guard(Mutex);
+  //     if (Iter < I.size())
+  //       return Iter++;
+  //     return static_cast<size_t>(-1);
+  //   };
 
-  std::thread T1(Solve, 0, K / 2);
-  std::thread T2(Solve, K / 2, K);
-  T1.join();
-  T2.join();
-  for (int i = 0; i < K; ++i)
-    std::cout << Answer[i].first << "\n" << Answer[i].second << "\n";
+  //   while (true) {
+  //     size_t It = getIter();
+  //     if (It == static_cast<size_t>(-1))
+  //       break;
+  //     std::cerr << "Thread " << ID << " gets job " << It << "\n";
+  //     Answer[It] = AStarSolver(I[It].Rows, I[It].Cols, I[It].Grid).solve();
+  //   }
+  // };
+
+  // std::thread T1(Solve, 0);
+  // std::thread T2(Solve, 1);
+  // T1.join();
+  // T2.join();
+  // for (int i = 0; i < K; ++i)
+  //   std::cout << Answer[i].first << "\n" << Answer[i].second << "\n";
   return 0;
 }
