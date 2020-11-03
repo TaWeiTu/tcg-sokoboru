@@ -3,19 +3,21 @@
 
 #include "State.h"
 #include "Utils.h"
-#include <bits/extc++.h>
 #include <ostream>
 #include <unordered_set>
+
+#include "absl/container/flat_hash_map.h"
 
 class Solver {
 protected:
   int Rows, Cols;
   const std::vector<Cell> &Grid;
-  std::vector<std::array<uint8_t, 4>> Dest;
+  std::array<std::array<uint8_t, 4>, 50> Dest;
+  uint64_t WallMask;
 
 public:
   Solver(int Rows, int Cols, const std::vector<Cell> &Grid)
-      : Rows(Rows), Cols(Cols), Grid(Grid), Dest(Rows * Cols) {
+      : Rows(Rows), Cols(Cols), Grid(Grid), WallMask(0) {
     for (int R = 0; R < Rows; ++R) {
       for (int C = 0; C < Cols; ++C) {
         auto &Dst = Dest[R * Cols + C];
@@ -30,8 +32,13 @@ public:
           Dst[RIGHT] = R * Cols + (C + 1);
       }
     }
+    for (unsigned P = 0, E = Grid.size(); P != E; ++P) {
+      if (Grid[P] == WALL)
+        WallMask |= (1ULL << P);
+    }
   }
 
+  virtual ~Solver() = default;
   virtual std::pair<int, std::string> solve() = 0;
 };
 
@@ -67,12 +74,14 @@ private:
   };
 
   static constexpr size_t BucketCount = 1'000'000;
-  std::unordered_map<State, std::tuple<int, State, Move>> Cache;
+  // std::unordered_map<State, std::tuple<int, State, Move>> Cache;
+  absl::flat_hash_map<State, std::tuple<int, State, Move>> Cache;
 
   std::string backtrace(State S);
 
 public:
   AStarSolver(int Rows, int Cols, const std::vector<Cell> &Grid);
+  virtual ~AStarSolver() = default;
   std::pair<int, std::string> solve() override;
 };
 

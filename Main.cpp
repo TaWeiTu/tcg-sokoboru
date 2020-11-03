@@ -1,5 +1,8 @@
 #include <chrono>
 #include <iostream>
+#include <memory>
+#include <mutex>
+#include <thread>
 #include <utility>
 
 #include "Solver.h"
@@ -21,36 +24,36 @@ int main() {
       break;
 
     auto Grid = readSokoboruGrid(Rows, Cols);
-    std::cout << AStarSolver(Rows, Cols, Grid).solve().first << "\n";
-    // I.emplace_back(Rows, Cols, std::move(Grid));
+    I.emplace_back(Rows, Cols, std::move(Grid));
   }
-  // int K = I.size();
-  // std::vector<std::pair<int, std::string>> Answer(K);
-  // size_t Iter = 0;
-  // std::mutex Mutex;
+  int K = I.size();
+  std::vector<std::pair<int, std::string>> Answer(K);
+  size_t Iter = 0;
+  std::mutex Mutex;
 
-  // auto Solve = [&I, &Answer, &Iter, &Mutex](size_t ID) {
-  //   auto getIter = [&]() -> size_t {
-  //     std::lock_guard<std::mutex> Guard(Mutex);
-  //     if (Iter < I.size())
-  //       return Iter++;
-  //     return static_cast<size_t>(-1);
-  //   };
+  auto Solve = [&I, &Answer, &Iter, &Mutex]() {
+    auto getIter = [&]() -> size_t {
+      std::lock_guard<std::mutex> Guard(Mutex);
+      if (Iter < I.size())
+        return Iter++;
+      return static_cast<size_t>(-1);
+    };
 
-  //   while (true) {
-  //     size_t It = getIter();
-  //     if (It == static_cast<size_t>(-1))
-  //       break;
-  //     std::cerr << "Thread " << ID << " gets job " << It << "\n";
-  //     Answer[It] = AStarSolver(I[It].Rows, I[It].Cols, I[It].Grid).solve();
-  //   }
-  // };
+    while (true) {
+      size_t It = getIter();
+      if (It == static_cast<size_t>(-1))
+        break;
+      std::unique_ptr<Solver> S =
+          std::make_unique<AStarSolver>(I[It].Rows, I[It].Cols, I[It].Grid);
+      Answer[It] = S->solve();
+    }
+  };
 
-  // std::thread T1(Solve, 0);
-  // std::thread T2(Solve, 1);
-  // T1.join();
-  // T2.join();
-  // for (int i = 0; i < K; ++i)
-  //   std::cout << Answer[i].first << "\n" << Answer[i].second << "\n";
+  std::thread T1(Solve);
+  std::thread T2(Solve);
+  T1.join();
+  T2.join();
+  for (int i = 0; i < K; ++i)
+    std::cout << Answer[i].first << "\n" << Answer[i].second << "\n";
   return 0;
 }

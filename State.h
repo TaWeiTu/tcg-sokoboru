@@ -89,7 +89,7 @@ struct State {
   }
 
   std::pair<State, int>
-  getNextState(uint8_t Dir, const std::vector<std::array<uint8_t, 4>> &Dest,
+  getNextState(uint8_t Dir, const std::array<std::array<uint8_t, 4>, 50> &Dest,
                uint64_t WallMask) const {
     State NextState = *this;
     uint8_t Dst = Dest[getPlayer()][Dir];

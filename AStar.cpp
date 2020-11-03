@@ -3,7 +3,7 @@
 #include <tuple>
 
 AStarSolver::AStarSolver(int Rows, int Cols, const std::vector<Cell> &Grid)
-    : Solver(Rows, Cols, Grid), Cache(BucketCount) {}
+    : Solver(Rows, Cols, Grid) {}
 
 bool AStarSolver::Comparator::operator()(const ListState &X,
                                          const ListState &Y) const {
@@ -30,11 +30,6 @@ std::pair<int, std::string> AStarSolver::solve() {
   std::priority_queue<ListState, std::vector<ListState>, Comparator> OpenList;
   OpenList.emplace(0, 0, Start);
   Cache[Start] = std::make_tuple(0, Start, Move(0));
-  uint64_t WallMask = 0;
-  for (unsigned P = 0, E = Grid.size(); P != E; ++P) {
-    if (Grid[P] == WALL)
-      WallMask |= (1ULL << P);
-  }
   while (!OpenList.empty()) {
     auto [Heuristic, Dist, S] = OpenList.top();
     OpenList.pop();
