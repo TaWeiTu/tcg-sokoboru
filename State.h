@@ -85,17 +85,26 @@ struct State {
     remove<X>(Old);
     insert<X>(New);
   }
+
   int getHeuristic([[maybe_unused]] int Rows, [[maybe_unused]] int Cols) const {
     int CurR = getPlayer() / Cols;
     int CurC = getPlayer() % Cols;
-    int Dist = 0;
-    for (uint64_t V = ((Masks[0] ^ Masks[1]) & StateMask); V > 0;) {
+    int BallDist = 0, BoxDist = 0;
+    for (uint64_t V = ((Masks[0] & ~Masks[1]) & StateMask); V > 0;) {
       int Bit = __builtin_ctzll(V & -V);
       int R = Bit / Cols, C = Bit % Cols;
-      Dist += std::abs(CurR - R) + std::abs(CurC - C);
+      BallDist += std::abs(CurR - R) + std::abs(CurC - C) + 2;
       V ^= (1ULL << Bit);
     }
-    return Dist;
+    for (uint64_t V = ((Masks[1] & ~Masks[0]) & StateMask); V > 0;) {
+      int Bit = __builtin_ctzll(V & -V);
+      int R = Bit / Cols, C = Bit % Cols;
+      BoxDist += std::abs(CurR - R) + std::abs(CurC - C) + 2;
+      V ^= (1ULL << Bit);
+    }
+    return std::min(BallDist + BoxDist,
+                    std::max(BallDist, BoxDist) +
+                        __builtin_popcountll(Masks[0] & Masks[1]));
   }
 
   bool isEmpty(uint8_t Pos, uint64_t WallMask) const {

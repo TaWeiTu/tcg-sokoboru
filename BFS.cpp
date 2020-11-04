@@ -10,12 +10,10 @@ std::pair<int, std::string> BFSSolver::solve() {
   PrevState[Start] = Start;
   Que[0].emplace_back(Start);
   int Dist = 0;
-  size_t NumVisited = 0;
   while (true) {
     auto &Q = Que[Dist % 3];
     for (auto &State : Q) {
       uint8_t Pos = State.getPlayer();
-      NumVisited++;
       for (uint8_t Dir = 0; Dir < 4; ++Dir) {
         uint8_t Next = Dest[Pos][Dir];
         if (Next == InvalidCell)
@@ -24,10 +22,8 @@ std::pair<int, std::string> BFSSolver::solve() {
         if (Cost < 0)
           continue;
 
-        if (NextState.terminate()) {
-          std::cerr << "NumVisited = " << NumVisited << "\n";
+        if (NextState.terminate())
           return std::make_pair(Dist + 1, backtrace(State, Dir));
-        }
 
         if (PrevState.find(NextState) != PrevState.end())
           continue;

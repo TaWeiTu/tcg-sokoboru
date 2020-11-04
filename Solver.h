@@ -1,7 +1,6 @@
 #ifndef SOLVER_H
 #define SOLVER_H
 
-#include "HashMap.h"
 #include "State.h"
 #include "Utils.h"
 #include <ostream>

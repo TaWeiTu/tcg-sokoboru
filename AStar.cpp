@@ -29,15 +29,23 @@ std::pair<int, std::string> AStarSolver::solve() {
   std::priority_queue<ListState, std::vector<ListState>, Comparator> OpenList;
   OpenList.emplace(0, 0, Start);
   Cache[Start] = std::make_tuple(0, Start, Move(0));
-  size_t NumVisited = 0;
+  bool SkipPop = false;
+  State ImmNext;
+  int ImmHeuristic, ImmDist;
   while (!OpenList.empty()) {
-    auto [Heuristic, Dist, S] = OpenList.top();
-    OpenList.pop();
-    NumVisited++;
-    if (S.terminate()) {
-      std::cerr << "NumVisited = " << NumVisited << "\n";
-      return std::make_pair(Dist, backtrace(S));
+    int Heuristic, Dist;
+    State S;
+    if (SkipPop) {
+      SkipPop = false;
+      Dist = ImmDist;
+      Heuristic = ImmHeuristic;
+      S = ImmNext;
+    } else {
+      std::tie(Heuristic, Dist, S) = OpenList.top();
+      OpenList.pop();
     }
+    if (S.terminate())
+      return std::make_pair(Dist, backtrace(S));
 
     if (std::get<0>(Cache[S]) < Heuristic)
       continue;
@@ -60,7 +68,14 @@ std::pair<int, std::string> AStarSolver::solve() {
       auto Iter = Cache.find(NextState);
       if (Iter == Cache.end() || std::get<0>(Iter->second) > NextHeuristic) {
         Cache[NextState] = std::make_tuple(NextHeuristic, S, Move(Dir));
-        OpenList.emplace(NextHeuristic, NextDist, NextState);
+        if (NextHeuristic > Heuristic || SkipPop) {
+          OpenList.emplace(NextHeuristic, NextDist, NextState);
+        } else {
+          SkipPop = true;
+          ImmNext = NextState;
+          ImmHeuristic = NextHeuristic;
+          ImmDist = NextDist;
+        }
       }
     }
   }
