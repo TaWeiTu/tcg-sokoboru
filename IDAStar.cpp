@@ -3,7 +3,8 @@
 IDAStarSolver::IDAStarSolver(int Rows, int Cols, const std::vector<Cell> &Grid)
     : Solver(Rows, Cols, Grid) {}
 
-int IDAStarSolver::DFS(State CurState, State PrevState, int Threshold, int Est, int Dist) {
+int IDAStarSolver::DFS(State CurState, State PrevState, int Threshold, int Est,
+                       int Dist) {
   NumVisited++;
   if (Est > Threshold)
     return Est;
@@ -30,7 +31,8 @@ int IDAStarSolver::DFS(State CurState, State PrevState, int Threshold, int Est, 
     if (Iter == Cache.end() || Iter->second > NextHeuristic) {
       Cache[NextState] = NextHeuristic;
       int Cut = DFS(NextState, CurState, Threshold, NextHeuristic, NextDist);
-      if (Cut == -1) return -1;
+      if (Cut == -1)
+        return -1;
       MinCut = std::min(MinCut, Cut);
     }
   }
