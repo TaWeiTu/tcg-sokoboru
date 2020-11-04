@@ -45,8 +45,8 @@ public:
 
 class BFSSolver : public Solver {
   std::array<std::vector<State>, 3> Que;
-  std::unordered_map<State, State> PrevState;
-  std::unordered_map<State, uint8_t> MoveDirs;
+  absl::flat_hash_map<State, State> PrevState;
+  absl::flat_hash_map<State, uint8_t> MoveDirs;
 
   std::string backtrace(State S, uint8_t Dir);
 
@@ -56,7 +56,8 @@ public:
 };
 
 class IDDFSSolver : public Solver {
-  std::unordered_map<State, int> VisState;
+  absl::flat_hash_map<State, int> VisState;
+  size_t NumVisited;
 
   bool IDDFS(const State &S, const State &Parent, int Depth, int DepthLimit);
 
@@ -90,6 +91,7 @@ public:
 class IDAStarSolver : public Solver {
   int DFS(State CurState, State PrevState, int Threshold, int Est, int Dist);
   absl::flat_hash_map<State, int> Cache;
+  size_t NumVisited;
 
 public:
   IDAStarSolver(int Rows, int Cols, const std::vector<Cell> &Grid);

@@ -5,6 +5,7 @@ IDDFSSolver::IDDFSSolver(int Rows, int Cols, const std::vector<Cell> &Grid)
 
 bool IDDFSSolver::IDDFS(const State &S, const State &Parent, int Depth,
                         int DepthLimit) {
+  NumVisited++;
   if (S.terminate())
     return true;
   if (Depth >= DepthLimit)
@@ -25,17 +26,10 @@ bool IDDFSSolver::IDDFS(const State &S, const State &Parent, int Depth,
   }
 
   for (int Cost = 0; Cost < 2; ++Cost) {
-    //  std::sort(DFSChild[Cost].begin(), DFSChild[Cost].end(),
-    //            [](const State &X, const State &Y) {
-    //              return X.getHeuristic() < Y.getHeuristic();
-    //            });
     for (auto &X : DFSChild[Cost]) {
-      // if (VisState.find(X) != VisState.end() && VisState[X] <= Depth + 1 +
-      // Cost)
-      //   continue;
-      // if (VisState.find(X) != VisState.end())
-      //   continue;
-      // VisState[X] = Depth + 1 + Cost;
+      if (VisState.find(X) != VisState.end() && VisState[X] <= Depth + 1 + Cost)
+        continue;
+      VisState[X] = Depth + 1 + Cost;
       if (IDDFS(X, S, Depth + 1 + Cost, DepthLimit))
         return true;
     }
@@ -45,9 +39,12 @@ bool IDDFSSolver::IDDFS(const State &S, const State &Parent, int Depth,
 
 std::pair<int, std::string> IDDFSSolver::solve() {
   auto Start = State(Grid);
+  NumVisited = 0;
   for (int DepthLimit = 1;; DepthLimit += 3) {
     VisState.clear();
-    if (IDDFS(Start, Start, 0, DepthLimit))
+    if (IDDFS(Start, Start, 0, DepthLimit)) {
+      std::cerr << "NumVisited = " << NumVisited << "\n";
       return std::make_pair(DepthLimit, "");
+    }
   }
 }

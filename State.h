@@ -11,6 +11,8 @@
 #include <ostream>
 #include <vector>
 
+#include "absl/hash/hash.h"
+
 enum Cell : uint8_t { BALL, EMPTY_BOX, WALL, FULL_BOX, EMPTY, PLAYER };
 constexpr uint8_t InvalidCell = static_cast<uint8_t>(-1);
 
@@ -86,16 +88,13 @@ struct State {
   int getHeuristic([[maybe_unused]] int Rows, [[maybe_unused]] int Cols) const {
     int CurR = getPlayer() / Cols;
     int CurC = getPlayer() % Cols;
-    std::array<int, 30> Buffer;
-    int Dist = 0, Ptr = 0;
+    int Dist = 0;
     for (uint64_t V = ((Masks[0] ^ Masks[1]) & StateMask); V > 0;) {
       int Bit = __builtin_ctzll(V & -V);
       int R = Bit / Cols, C = Bit % Cols;
-      Buffer[Ptr++] = std::abs(CurR - R) + std::abs(CurC - C);
+      Dist += std::abs(CurR - R) + std::abs(CurC - C);
       V ^= (1ULL << Bit);
     }
-    std::nth_element(Buffer.begin(), Buffer.begin() + Ptr / 2, Buffer.begin() + Ptr);
-    return std::accumulate(Buffer.begin(), Buffer.begin() + Ptr / 2, 0);
     return Dist;
   }
 
@@ -144,24 +143,11 @@ struct State {
     NextState.move<FULL_BOX>(Dst, Dest[Dst][Dir]);
     return std::make_pair(NextState, 2);
   }
-};
 
-namespace std {
-
-template <> struct hash<State> {
-  template <typename T> uint64_t getHash(const T &V) const {
-    return std::hash<T>()(V);
-  }
-
-  uint64_t operator()(const State &S) const {
-    uint64_t Seed = 7122;
-    Seed ^= getHash(S.Masks[0]) + 0x9e3779b9 + (Seed << 6) + (Seed >> 2);
-    Seed ^= getHash(S.Masks[1]) + 0x9e3779b9 + (Seed << 6) + (Seed >> 2);
-    return Seed;
+  template <typename H> friend H AbslHashValue(H h, const State &S) {
+    return H::combine(std::move(h), S.Masks[0], S.Masks[1]);
   }
 };
-
-} // namespace std
 
 inline void debug(std::ostream &OS, const State &S, int Rows, int Cols,
                   const std::vector<Cell> &Grid) {

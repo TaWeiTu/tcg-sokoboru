@@ -44,7 +44,7 @@ int main() {
       if (It == static_cast<size_t>(-1))
         break;
       std::unique_ptr<Solver> S =
-          std::make_unique<AStarSolver>(I[It].Rows, I[It].Cols, I[It].Grid);
+          std::make_unique<BFSSolver>(I[It].Rows, I[It].Cols, I[It].Grid);
       Answer[It] = S->solve();
     }
   };
