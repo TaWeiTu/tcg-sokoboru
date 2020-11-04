@@ -15,7 +15,6 @@ std::string AStarSolver::backtrace(State S) {
   std::string Path = "";
   while (true) {
     auto Iter = Cache.find(S);
-    assert(Iter != Cache.end());
     if (std::get<1>(Iter->second) == S)
       break;
     Path += MoveStr[std::get<2>(Iter->second)];
@@ -30,11 +29,15 @@ std::pair<int, std::string> AStarSolver::solve() {
   std::priority_queue<ListState, std::vector<ListState>, Comparator> OpenList;
   OpenList.emplace(0, 0, Start);
   Cache[Start] = std::make_tuple(0, Start, Move(0));
+  size_t NumVisited = 0;
   while (!OpenList.empty()) {
     auto [Heuristic, Dist, S] = OpenList.top();
     OpenList.pop();
-    if (S.terminate())
+    NumVisited++;
+    if (S.terminate()) {
+      std::cerr << "NumVisited = " << NumVisited << "\n";
       return std::make_pair(Dist, backtrace(S));
+    }
 
     if (std::get<0>(Cache[S]) < Heuristic)
       continue;

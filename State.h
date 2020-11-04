@@ -44,7 +44,10 @@ struct State {
   }
 
   template <uint8_t X> bool has(uint8_t Pos) const {
-    return (Masks[X] & ~Masks[X ^ 1]) >> Pos & 1;
+    if constexpr (X == uint8_t(FULL_BOX))
+      return (Masks[BALL] & Masks[EMPTY_BOX]) >> Pos & 1;
+    else
+      return (Masks[X] & ~Masks[X ^ 1]) >> Pos & 1;
   }
 
   uint8_t getPlayer() const {
@@ -58,29 +61,41 @@ struct State {
 
   template <uint8_t X> void remove(uint8_t Pos) {
     assert(has<X>(Pos));
-    Masks[X] &= ~(1ULL << Pos);
+    if constexpr (X != FULL_BOX) {
+      Masks[X] &= ~(1ULL << Pos);
+    } else {
+      Masks[BALL] &= ~(1ULL << Pos);
+      Masks[EMPTY_BOX] &= ~(1ULL << Pos);
+    }
   }
 
   template <uint8_t X> void insert(uint8_t Pos) {
     assert(!has<X>(Pos));
-    Masks[X] |= (1ULL << Pos);
+    if constexpr (X != FULL_BOX) {
+      Masks[X] |= (1ULL << Pos);
+    } else {
+      Masks[BALL] |= (1ULL << Pos);
+      Masks[EMPTY_BOX] |= (1ULL << Pos);
+    }
   }
 
   template <uint8_t X> void move(uint8_t Old, uint8_t New) {
     remove<X>(Old);
     insert<X>(New);
   }
-  virtual int getHeuristic([[maybe_unused]] int Rows,
-                           [[maybe_unused]] int Cols) const {
+  int getHeuristic([[maybe_unused]] int Rows, [[maybe_unused]] int Cols) const {
     int CurR = getPlayer() / Cols;
     int CurC = getPlayer() % Cols;
-    int Dist = 0;
+    std::array<int, 30> Buffer;
+    int Dist = 0, Ptr = 0;
     for (uint64_t V = ((Masks[0] ^ Masks[1]) & StateMask); V > 0;) {
       int Bit = __builtin_ctzll(V & -V);
       int R = Bit / Cols, C = Bit % Cols;
-      Dist += std::abs(CurR - R) + std::abs(CurC - C);
+      Buffer[Ptr++] = std::abs(CurR - R) + std::abs(CurC - C);
       V ^= (1ULL << Bit);
     }
+    std::nth_element(Buffer.begin(), Buffer.begin() + Ptr / 2, Buffer.begin() + Ptr);
+    return std::accumulate(Buffer.begin(), Buffer.begin() + Ptr / 2, 0);
     return Dist;
   }
 
@@ -126,15 +141,10 @@ struct State {
     assert(has<FULL_BOX>(Dst));
     if (Dest[Dst][Dir] == InvalidCell || !isEmpty(Dest[Dst][Dir], WallMask))
       return std::make_pair(NextState, -1);
-    NextState.move<BALL>(Dst, Dest[Dst][Dir]);
-    NextState.move<EMPTY_BOX>(Dst, Dest[Dst][Dir]);
+    NextState.move<FULL_BOX>(Dst, Dest[Dst][Dir]);
     return std::make_pair(NextState, 2);
   }
 };
-
-template <> inline bool State::has<FULL_BOX>(uint8_t Pos) const {
-  return (Masks[BALL] & Masks[EMPTY_BOX]) >> Pos & 1;
-}
 
 namespace std {
 

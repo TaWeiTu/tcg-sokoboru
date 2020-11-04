@@ -3,19 +3,20 @@
 IDDFSSolver::IDDFSSolver(int Rows, int Cols, const std::vector<Cell> &Grid)
     : Solver(Rows, Cols, Grid) {}
 
-bool IDDFSSolver::IDDFS(const State &S, const State &Parent, int Depth, int DepthLimit) {
+bool IDDFSSolver::IDDFS(const State &S, const State &Parent, int Depth,
+                        int DepthLimit) {
   if (S.terminate())
     return true;
   if (Depth >= DepthLimit)
     return false;
 
-  uint8_t Pos = S.Player;
+  uint8_t Pos = S.getPlayer();
   std::array<std::vector<State>, 2> DFSChild{};
   for (uint8_t Dir = 0; Dir < 4; ++Dir) {
     uint8_t Next = Dest[Pos][Dir];
     if (Next == InvalidCell)
       continue;
-    auto [NextState, Cost] = S.getNextState(Dir, Dest, Grid);
+    auto [NextState, Cost] = S.getNextState(Dir, Dest, WallMask);
     if (NextState == Parent)
       continue;
     if (Cost < 0)
@@ -24,12 +25,13 @@ bool IDDFSSolver::IDDFS(const State &S, const State &Parent, int Depth, int Dept
   }
 
   for (int Cost = 0; Cost < 2; ++Cost) {
-    std::sort(DFSChild[Cost].begin(), DFSChild[Cost].end(),
-              [](const State &X, const State &Y) {
-                return X.getHeuristic() < Y.getHeuristic();
-              });
+    //  std::sort(DFSChild[Cost].begin(), DFSChild[Cost].end(),
+    //            [](const State &X, const State &Y) {
+    //              return X.getHeuristic() < Y.getHeuristic();
+    //            });
     for (auto &X : DFSChild[Cost]) {
-      // if (VisState.find(X) != VisState.end() && VisState[X] <= Depth + 1 + Cost)
+      // if (VisState.find(X) != VisState.end() && VisState[X] <= Depth + 1 +
+      // Cost)
       //   continue;
       // if (VisState.find(X) != VisState.end())
       //   continue;
@@ -41,13 +43,11 @@ bool IDDFSSolver::IDDFS(const State &S, const State &Parent, int Depth, int Dept
   return false;
 }
 
-void IDDFSSolver::solve(std::ostream &OS) {
+std::pair<int, std::string> IDDFSSolver::solve() {
   auto Start = State(Grid);
   for (int DepthLimit = 1;; DepthLimit += 3) {
     VisState.clear();
-    if (IDDFS(Start, Start, 0, DepthLimit)) {
-      OS << "Found Dist = " << DepthLimit << "\n";
-      break;
-    }
+    if (IDDFS(Start, Start, 0, DepthLimit))
+      return std::make_pair(DepthLimit, "");
   }
 }

@@ -1,6 +1,7 @@
 #ifndef SOLVER_H
 #define SOLVER_H
 
+#include "HashMap.h"
 #include "State.h"
 #include "Utils.h"
 #include <ostream>
@@ -42,27 +43,27 @@ public:
   virtual std::pair<int, std::string> solve() = 0;
 };
 
-// class BFSSolver : public Solver {
-//   std::array<std::vector<State>, 3> Que;
-//   std::unordered_map<State, State> PrevState;
-//   std::unordered_map<State, uint8_t> MoveDirs;
-//
-//   void backTrack(std::ostream &OS, State S, int Dist, uint8_t Dir);
-//
-// public:
-//   BFSSolver(int Rows, int Cols, const std::vector<Cell> &Grid);
-//   void solve(std::ostream &OS) override;
-// };
-//
-// class IDDFSSolver : public Solver {
-//   std::unordered_map<State, int> VisState;
-//
-//   bool IDDFS(const State &S, const State &Parent, int Depth, int DepthLimit);
-//
-// public:
-//   IDDFSSolver(int Rows, int Cols, const std::vector<Cell> &Grid);
-//   void solve(std::ostream &OS) override;
-// };
+class BFSSolver : public Solver {
+  std::array<std::vector<State>, 3> Que;
+  std::unordered_map<State, State> PrevState;
+  std::unordered_map<State, uint8_t> MoveDirs;
+
+  std::string backtrace(State S, uint8_t Dir);
+
+public:
+  BFSSolver(int Rows, int Cols, const std::vector<Cell> &Grid);
+  std::pair<int, std::string> solve() override;
+};
+
+class IDDFSSolver : public Solver {
+  std::unordered_map<State, int> VisState;
+
+  bool IDDFS(const State &S, const State &Parent, int Depth, int DepthLimit);
+
+public:
+  IDDFSSolver(int Rows, int Cols, const std::vector<Cell> &Grid);
+  std::pair<int, std::string> solve() override;
+};
 
 class AStarSolver : public Solver {
 public:
@@ -76,12 +77,23 @@ private:
   static constexpr size_t BucketCount = 1'000'000;
   // std::unordered_map<State, std::tuple<int, State, Move>> Cache;
   absl::flat_hash_map<State, std::tuple<int, State, Move>> Cache;
+  // HashMap<State, std::tuple<int, State, Move>> Cache;
 
   std::string backtrace(State S);
 
 public:
   AStarSolver(int Rows, int Cols, const std::vector<Cell> &Grid);
   virtual ~AStarSolver() = default;
+  std::pair<int, std::string> solve() override;
+};
+
+class IDAStarSolver : public Solver {
+  int DFS(State CurState, State PrevState, int Threshold, int Est, int Dist);
+  absl::flat_hash_map<State, int> Cache;
+
+public:
+  IDAStarSolver(int Rows, int Cols, const std::vector<Cell> &Grid);
+  virtual ~IDAStarSolver() = default;
   std::pair<int, std::string> solve() override;
 };
 
